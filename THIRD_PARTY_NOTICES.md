@@ -6,7 +6,6 @@ Privacy Cleaner includes portions of code from the following projects. The origi
 
 - Author: @Robobloxi
 - Integrated functionality: link tracking-parameter cleanup and phishing detection.
-- The author requested attribution as **Link Guard**, without a version number.
 - Permission to use and redistribute the source code was received directly from the author.
 
 ## Round Client Detector
