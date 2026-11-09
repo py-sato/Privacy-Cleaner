@@ -9,9 +9,6 @@ __author__ = "@m0lex (Sato.py)"
 __version__ = "0.3.0"
 __min_version__ = "11.12.1"
 
-# Проверка ссылок основана на Link Guard (@Robobloxi), определение устройства записи
-# кружка — на Round Client Detector (@netconfiger). Использовано с разрешения авторов.
-
 import collections
 from datetime import datetime
 import os
@@ -82,7 +79,7 @@ except Exception:
     def set_private_field(obj, field, val):
         setattr(obj, field, val)
 
-# --- Java ---------------------------------------------------------------
+# Java
 BitmapFactory = jclass("android.graphics.BitmapFactory")
 Bitmap = jclass("android.graphics.Bitmap")
 CompressFormat = jclass("android.graphics.Bitmap$CompressFormat")
@@ -92,14 +89,12 @@ FileOutputStream = jclass("java.io.FileOutputStream")
 ApplicationLoader = jclass("org.telegram.messenger.ApplicationLoader")
 
 JPEG_QUALITY = 95
-MAX_VIDEO_MB = 200  # видео больше этого размера отправляются как есть
+MAX_VIDEO_MB = 200  
 
 PHOTO_EXT = {".jpg", ".jpeg", ".png", ".heic", ".heif"}
 VIDEO_EXT = {".mp4", ".m4v", ".mov", ".3gp"}
 
-# ======================================================================
-# Строки
-# ======================================================================
+
 S = {
     "hdr_media": "Медиа и файлы",
     "sw_photos": "Чистить фото",
@@ -207,10 +202,6 @@ def _as_str(obj):
         pass
     return None
 
-
-# ======================================================================
-# Метаданные mp4
-# ======================================================================
 def _scrub_boxes(buf, start, end):
     """Заменяет udta/meta на free (размеры не меняются, смещения не ломаются)
     и обнуляет даты в mvhd/tkhd/mdhd."""
@@ -273,10 +264,6 @@ def scrub_mp4_inplace(path):
                 f.write(bytes(size - hsz))
             pos += size
 
-
-# ======================================================================
-# Ссылки: чистка трекеров (на основе Link Guard, @Robobloxi)
-# ======================================================================
 TRACKER_EXACT = {
     "fbclid", "gclid", "gbraid", "wbraid", "dclid", "msclkid", "twclid", "ttclid",
     "igshid", "igsh", "yclid", "ysclid", "_openstat", "mkt_tok", "vero_id", "vero_conv",
@@ -291,7 +278,7 @@ TRACKER_AGGRESSIVE = {
     "share_source", "share_medium", "share_plat", "_branch_match_id", "feature", "trk",
     "trkcampaign",
 }
-# Параметры, которые безопасно резать всегда, но только на этих сайтах
+
 DOMAIN_PARAMS = {
     "youtu.be": {"si", "feature"},
     "youtube.com": {"si", "feature"},
@@ -339,9 +326,6 @@ def clean_url(url, aggressive=False):
     return urlunsplit((parts.scheme, parts.netloc, parts.path, "&".join(kept), parts.fragment)), removed
 
 
-# ======================================================================
-# Ссылки: разбор на фишинг (на основе Link Guard, без сети и без базы)
-# ======================================================================
 SHORTENERS = {
     "bit.ly", "tinyurl.com", "goo.gl", "t.co", "ow.ly", "is.gd", "buff.ly", "cutt.ly", "rb.gy",
     "shorturl.at", "clck.ru", "vk.cc", "surl.li", "u.to", "qps.ru", "clc.to", "gg.gg", "tiny.cc",
@@ -735,9 +719,6 @@ def analyze(url, aggressive=False, whitelist=(), anchor=None):
     return verdict
 
 
-# ======================================================================
-# Хук открытия ссылок
-# ======================================================================
 class _OpenUrlHook(MethodHook):
     plugin = None
 
@@ -758,9 +739,6 @@ class _MediaHook(MethodHook):
             self.plugin.log("media hook error: %s" % e)
 
 
-# ======================================================================
-# Устройство записи кружка (Round Client Detector 3.3.1, @netconfiger)
-# ======================================================================
 ROUND_NON_TARGET_TYPES = {0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}
 
 
@@ -892,7 +870,6 @@ class _RoundCellMeasureTimeHook(MethodHook):
             if not message:
                 return
 
-            # Быстрый выход для не-кружков
             msg_type = getattr(message, "type", None)
             if msg_type == 5:
                 pass
@@ -946,9 +923,7 @@ class _RoundCellMeasureTimeHook(MethodHook):
             edit_date = getattr(owner, "edit_date", 0) if owner else 0
             cache_key = (dialog_id, msg_id, edit_date)
 
-            # Кешируем только сам тег. Ширину и layout всегда считаем заново от текущей
-            # базовой ширины: Theme.chat_timePaint пересоздаётся при каждом входе в чат,
-            # и закешированные пиксели обрезали бы метку.
+          
             tag = self.plugin.get_round_tag_fast(message, cache_key)
             if not tag:
                 return
@@ -991,9 +966,6 @@ class _RoundCellMeasureTimeHook(MethodHook):
             pass
 
 
-# ======================================================================
-# Плагин
-# ======================================================================
 class PrivacyCleaner(BasePlugin):
     APPROVAL_WINDOW = 10.0
     UPDATE_NAMES = ("TL_updateNewMessage", "TL_updateNewChannelMessage",
@@ -1046,7 +1018,6 @@ class PrivacyCleaner(BasePlugin):
             self.log("load step %s failed: %s" % (name, e))
             return False
 
-    # ---------------------------------------------------------- настройки
     def _on(self, key, default=True):
         return bool(self.get_setting(key, default))
 
@@ -1096,11 +1067,8 @@ class PrivacyCleaner(BasePlugin):
     def _aggressive(self):
         return self._on("aggressive", False)
 
-    # ---------------------------------------------------------- кэш файлов
     def _init_cache(self):
         ctx = ApplicationLoader.applicationContext
-        # Telegram отказывается отправлять файлы из внутренней папки приложения
-        # ("файл не поддерживается"), поэтому копии кладём во внешний кэш.
         base = None
         try:
             ext_dir = ctx.getExternalCacheDir()
@@ -1126,8 +1094,7 @@ class PrivacyCleaner(BasePlugin):
         else:
             name = os.path.splitext(os.path.basename(src))[0] + ext
         return os.path.join(d, name)
-
-    # ---------------------------------------------------------- исходящий текст
+        
     def on_send_message_hook(self, account, params):
         if not self._on("clean_urls_out", True):
             return HookResult()
@@ -1137,7 +1104,7 @@ class PrivacyCleaner(BasePlugin):
         try:
             entities = getattr(params, "entities", None)
             if entities is not None and entities.size() > 0:
-                return HookResult()  # форматирование: при замене сдвинулись бы offset'ы
+                return HookResult()  
         except Exception:
             pass
 
@@ -1155,7 +1122,6 @@ class PrivacyCleaner(BasePlugin):
         params.message = new_text
         return HookResult(strategy=HookStrategy.MODIFY, params=params)
 
-    # ---------------------------------------------------------- медиа
     def _install_media_hooks(self):
         helper = find_class("org.telegram.messenger.SendMessagesHelper")
         hook = _MediaHook()
@@ -1311,8 +1277,7 @@ class PrivacyCleaner(BasePlugin):
         shutil.copyfile(path, out)
         scrub_mp4_inplace(out)
         return out
-
-    # ---------------------------------------------------------- меню
+        
     def _register_menu(self):
         self._menu_items.append(self.add_menu_item(MenuItemData(
             menu_type=MenuItemType.MESSAGE_CONTEXT_MENU, text=t("menu_check"), icon="msg_info",
@@ -1328,7 +1293,6 @@ class PrivacyCleaner(BasePlugin):
             menu_type=MenuItemType.CHAT_ACTION_MENU, text=t("menu_info"), icon="msg_list",
             on_click=self.show_dialog_info)))
 
-    # ---------------------------------------------------------- проверка ссылок: хуки
     def _install_open_url_hook(self):
         handler = _OpenUrlHook()
         handler.plugin = self
@@ -1536,7 +1500,6 @@ class PrivacyCleaner(BasePlugin):
         param.setResult(None)
         self._show_verdict(verdict, param.method, list(param.args), index)
 
-    # ---------------------------------------------------------- проверка ссылок: окна
     @staticmethod
     def _can_dialog():
         if AlertDialogBuilder is None:
@@ -1627,7 +1590,6 @@ class PrivacyCleaner(BasePlugin):
         builder.set_negative_button(t("btn_trust_yes"), accept)
         builder.show()
 
-    # ---------------------------------------------------------- открытие ссылки после проверки
     @staticmethod
     def _replace_url_arg(args, index, url):
         if index is None or not args:
@@ -1714,7 +1676,6 @@ class PrivacyCleaner(BasePlugin):
         self._copy(url)
         self._toast(t("toast_copied"))
 
-    # ---------------------------------------------------------- пункты меню сообщения
     @staticmethod
     def _message_text(message):
         for getter in ("messageText", "caption"):
@@ -1780,7 +1741,6 @@ class PrivacyCleaner(BasePlugin):
         self._copy("\n".join(cleaned))
         self._toast(t("toast_copied_ok"))
 
-    # ---------------------------------------------------------- сведения о диалоге
     def show_dialog_info(self, context: Dict[str, Any]):
         fragment = get_last_fragment()
         dialog_id = context.get("peer")
@@ -1875,7 +1835,6 @@ class PrivacyCleaner(BasePlugin):
         builder.set_negative_button("Закрыть", lambda d, w: d.dismiss())
         builder.show()
 
-    # ---------------------------------------------------------- утилиты
     @staticmethod
     def _copy(text):
         try:
@@ -1892,8 +1851,7 @@ class PrivacyCleaner(BasePlugin):
             BulletinHelper.show_info(text, get_last_fragment())
         except Exception:
             log("PrivacyCleaner: %s" % text)
-
-    # ---------------------------------------------------------- устройство записи кружка (@netconfiger)
+            
     def _install_round_hook(self):
         self._tag_cache = ThreadSafeLRUCache(max_size=1000)
         self._field_cache = {}
@@ -1909,7 +1867,6 @@ class PrivacyCleaner(BasePlugin):
             self.log("hooked ChatMessageCell.measureTime")
 
     def _rc_is_enabled(self):
-        # Настройка перечитывается не чаще раза в секунду: хук вызывается на каждую отрисовку.
         now = time.monotonic()
         if now - self._rc_checked > 1.0:
             self._rc_checked = now
@@ -2017,7 +1974,6 @@ class PrivacyCleaner(BasePlugin):
             return True
 
     def get_time_paint(self) -> Any:
-        # Theme.chat_timePaint пересоздаётся при каждом входе в чат, поэтому читаем его заново.
         if self._theme_cls is None:
             self._theme_cls = find_class("org.telegram.ui.ActionBar.Theme")
         if self._theme_cls is not None:
